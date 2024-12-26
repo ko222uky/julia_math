@@ -4,265 +4,75 @@
 using Markdown
 using InteractiveUtils
 
-# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
-macro bind(def, element)
-    quote
-        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
-        local el = $(esc(element))
-        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
-        el
-    end
-end
-
-# ╔═╡ 4b6927e0-4f18-4ab3-b2d4-fbeea3f8d6c2
+# ╔═╡ c0cc9acc-c3d3-11ef-1e46-49647dbb83ea
 using Plots
 
-# ╔═╡ 4925304c-b06b-4045-99cf-2d62851542c2
-using PlutoUI
-
-# ╔═╡ 4d1655b4-4a20-4c65-a8c2-02c2ffe07f89
-using Statistics
-
-# ╔═╡ a20c0284-07d2-4b08-a24b-6a2cf7e21989
-using Distributions
-
-# ╔═╡ 7f399708-5396-45dd-a049-2a4f6148b9c6
-using QuadGK
-
-# ╔═╡ 8d21c9d3-6016-46f0-b32b-68852f3ac4af
+# ╔═╡ da8af695-3f44-45ba-bb00-e9d2fab97869
 md"""
-# Gaussian Function
+# Fuzzy set memberships
+From Kantardzic's _Data Mining: Concepts, Models, Methods and Algorithms_ 2ⁿᵈ edition
 """
 
-# ╔═╡ 4c6e4079-93fd-4d62-87fe-7f251fd8a530
-md"""
-**Parameter _c_ slider**
-"""
-# The reactive variables (our sliders) should be defined before our function definition and plot.
-
-# ╔═╡ 33154ab9-01f9-484e-9001-c82a57be8056
-
-# Create sliders for c and σ
-@bind c Slider(0:1:300, default=50, show_value=true)
-
-
-# ╔═╡ 210f4ece-c725-4625-b45f-b491dd2ca7e3
-md"""
-**Parameter _σ_ slider**
-"""
-
-# ╔═╡ 26c9548d-e140-4499-986f-83d42f0468d0
-@bind σ Slider(1:1:50, default=20, show_value=true)
-
-# ╔═╡ 95d926fe-9d4f-4617-b83a-15531d79a8b9
-@bind x_max NumberField(0:1000, default=200)
-
-# ╔═╡ 8799e883-6f22-4e09-8b84-d852ad0d93b4
-# Create the x values
-x = 0:0.1:x_max  
-
-# ╔═╡ d415319e-0bc2-440f-ad44-542361624e02
+# ╔═╡ 9af8f706-2581-4d07-b14f-82bb6658f091
 begin
-	# Define the Gaussian function
-	f(x, c, σ) = exp((-1/(2))*((x - c)/σ)^2) 
+	x = 0:0.01:10
 	
-	# Plot the function dynamically
-	plot(
-	    x, 
-	    [f(xi, c, σ) for xi in x], # Apply the function to each x value
-	    label="f(x) = exp((-1/2)((x - c)/σ)^2)", 
-	    xlabel="x", 
-	    ylabel="f(x)", 
-	    title="Gaussian Function (c = $c, σ = $σ)", 
-	    lw=2,
-	    legend=:outertop
-	)
-
-end
-
-# ╔═╡ 5943db6f-f458-4e4f-87f5-c7282d83f112
-md"""
-# Triangle Function
-"""
-
-# ╔═╡ 0b984c52-bba5-4c6e-a225-e065bfd691f0
-function triangle_function(x, a, b, c2)
-	if x <= a
-		return 0
-	elseif a <= x <= b
-		return (x - a)/(b - a)
-	elseif b <= x <= c2
-		return (c2 - x)/(c2 - b)
-	elseif c2 <= x
-		return 0
+	# Membership functions for fuzzy sets A, B and C in x interval [0, 10]
+	μA(x) = x/(x+2)
+	μB(x) = 2^-x
+	
+	function membership_C(x)
+		# A piecewise function:
+		if x >= 0 && x <= 4.89
+			return (x^2)/24
+		else
+			return 1
+		end
 	end
+
+	μC(x) = membership_C(x)
+
+	# The complements:
+	Ac(x) = 1 - μA(x)
+	Bc(x) = 1 - μB(x)
+	Cc(x) = 1 - μC(x)
+
+	# Unions A∪C and A∪B may be found via the following function (use broadcasting)
+	function fuzzy_union(f1, f2, x)
+		return max(f1(x), f2(x))
+	end
+
+
 end
 
-
-
-	
-
-# ╔═╡ 8e4f44b9-b66c-46b8-b5e2-b01d98dda05b
-@bind a Slider(0:1:300, default=20, show_value=true)
-
-# ╔═╡ 2dc2aa49-809b-4003-9bd4-56fac74b0858
-@bind b Slider(0:1:300, default=60, show_value=true)
-
-# ╔═╡ 4b141423-694a-41de-90ba-e7a5c9041002
-@bind c2 Slider(0:1:300, default=80, show_value=true)
-
-# ╔═╡ d5e230cc-e878-46fa-90a2-af414b4044d9
+# ╔═╡ ed06b9cf-6675-463a-8626-77f9675a8ab8
 begin
-	g(x) = triangle_function(x, a, b, c2)
-
-
-
-	# Plot the function dynamically
-	plot(
-	    x, 
-	    [g(xi) for xi in x], # Apply the function to each x value
-	    label="Triangle function", 
-	    xlabel="x", 
-	    ylabel="f(x)", 
-	    title="Triangle Function (a = $a, b = $b, c = $c2)", 
-	    lw=2,
-	    legend=:outertop
-	)
-
+	plot(x, μA.(x), label= "A", title="Fuzzy set membership functions", legend =:outertop)
+	plot!(x, μB.(x), label="B")
+	plot!(x, μC.(x), label="C")
 end
 
-
-# ╔═╡ 5f1ac93f-12ec-4f19-9408-c3e752f51cb5
-md"""
-# Normal Distribution from μ and σ
-"""
-
-# ╔═╡ 147359ed-5fd6-45a6-83f0-93a73c9620c5
-# Create sliders for mean and standard deviation
-md"""
-**Mean:**
-"""
-
-# ╔═╡ d36d4c02-adb7-4a64-aab1-f0f48cc11e90
-@bind example_mean Slider(-10:0.1:10, default=0.0, show_value=true)
-
-# ╔═╡ 4173fe3f-5b64-465b-aef4-488a4e5e69f4
-md"""
-**Standard Deviation:**
-"""
-
-# ╔═╡ 15f89b24-bf9a-4129-af28-1c20d068abf4
-@bind example_stdev Slider(0.1:0.1:10, default=1.0, show_value=true)
-
-# Define the Gaussian function manually
-
-# ╔═╡ c4f447f4-44a2-46a4-b347-12885c1b151f
-function gaussian(x, mean, stdev)
-    return (1 / (stdev * sqrt(2 * π))) * exp(-((x - mean)^2) / (2 * stdev^2))
-end
-
-# Generate x values
-
-# ╔═╡ 48f19e19-da55-4cd0-b441-d0260e7c398f
-x2 = -10:0.1:10
-
-# ╔═╡ d03858d3-c3e6-4763-a92c-c3bba36e6973
-# List comprehension to obtain pdf values
-
-# Compute the PDF values manually
-pdf_values = [gaussian(xi, example_mean, example_stdev) for xi in x2]
-
-
-
-# ╔═╡ 89361bf6-e7d7-4bac-8b8a-5d9ccf8122d2
-# Display the PDF values
-pdf_values
-
-# ╔═╡ 6bd582ea-b410-41f1-978b-0e77d179bd1e
-# Plot the Gaussian distribution dynamically
-plot(x2, 
-	pdf_values,
-	title="Gaussian Distribution (mean=$example_mean, stdev=$example_stdev)",
-	label="1 / (stdev * sqrt(2 * π))) * exp(-((x - mean)^2) / (2 * stdev^2)",
-	xlabel="x", 
-	ylabel="Density", 
-	lw=2,
-	legend=:outertop)
-
-# ╔═╡ 32eccf9c-53dd-44ec-a50e-1de970acd835
-md"""
-# Normal distribution from sample data
-"""
-
-# ╔═╡ 4a4b7ce9-a9e9-412e-ab06-6bdb1fa0fc51
+# ╔═╡ 558546cd-6905-4971-9dd1-c3ea41579329
 begin
-
-	# Sample data
-	data = [0.23, 0.7, 0.8, 2, 0.75, 0.45, -0.05, -0.5, -0.88, -2, -0.8, -0.55, -0.1]
-	
-	# Sample statistics
-	sample_mean = mean(data)
-	sample_std = std(data)
-
-	# define an x-range over which to compute PDF values, given mean and std
-	x_range = -5:0.1:5
-	example_pdf_values = [gaussian(x, sample_mean, sample_std) for x in x_range]
-
-	# Plot the Gaussian distribution with our hypothetical range
-	plot(x_range,
-		example_pdf_values,
-		title="Sample Gaussian Distribution",
-		label="1 / (stdev * sqrt(2 * π))) * exp(-((x - mean)^2) / (2 * stdev^2)",
-		xlabel="x", 
-		ylabel="Density", 
-		lw=2,
-		legend=:outertop)
+	plot(x, Ac.(x), label= "A'", title="Fuzzy set complements", legend =:outertop)
+	plot!(x, Bc.(x), label="B'")
+	plot!(x, Cc.(x), label="C'")
 end
 
-# ╔═╡ 3a7beea1-fa55-4395-bf95-67da8a9bf586
-# Compute the percentile value assuming a normal distribution
-percentile_33 = quantile(Normal(sample_mean, sample_std), 0.33)
-
-# ╔═╡ 38cc9291-81d2-46ec-b5de-5b9ca8d8453d
-percentile_67 = quantile(Normal(sample_mean, sample_std), 0.67)
-# I will use this value to recompute the AUC to the left of this value. I expect 0.67 to be the returned answer below.
-
-# ╔═╡ c94f67cb-b39e-4296-91d2-70bd2bc87c8e
-md"""
-# Single-variable integral to compute probability
-"""
-
-# ╔═╡ f7bff085-ce85-4e90-8201-42db74aa73c6
+# ╔═╡ 80ecafa9-ac35-431f-9edf-45b5600889ab
 begin
-	# I defined the gaussian function earlier.
-	# Let's define a simple function with the parameters specified
-	normal_pdf(x) = gaussian(x, sample_mean, sample_std)
-	
-	# For the integration, let's define the upper limit:
-	upper = 0.4424211891100593
-	
-	result, error = quadgk(normal_pdf, -Inf, upper)
+	plot(x, fuzzy_union.(μA, μC, x), label= "A∪C", title="Fuzzy unions", legend =:outertop)
+	plot!(x, fuzzy_union.(μA, μB, x), label="A∪B")
 
-	# Since I used the same sample mean and std from above, and the value for upper as the same for the 67th percentile, I expect a result of 0.67
-
-	
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
-Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
-PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
-Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
-Distributions = "~0.25.115"
 Plots = "~1.40.9"
-PlutoUI = "~0.7.60"
-QuadGK = "~2.11.1"
-Statistics = "~1.10.0"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -271,13 +81,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "2c8c44cd5f317d4afc025bc90e479e58547cba0e"
-
-[[deps.AbstractPlutoDingetjes]]
-deps = ["Pkg"]
-git-tree-sha1 = "6e1d2a35f2f90a4bc7c2ed98079b2ba09c35b83a"
-uuid = "6e696c72-6542-2067-7265-42206c756150"
-version = "1.3.2"
+project_hash = "39d0d5866236472d6bc1a58c4e663ea8a2a2e057"
 
 [[deps.AliasTables]]
 deps = ["PtrArrays", "Random"]
@@ -326,19 +130,27 @@ version = "3.27.1"
 
 [[deps.ColorTypes]]
 deps = ["FixedPointNumbers", "Random"]
-git-tree-sha1 = "b10d0b65641d57b8b4d5e234446582de5047050d"
+git-tree-sha1 = "c7acce7a7e1078a20a285211dd73cd3941a871d6"
 uuid = "3da002f7-5984-5a60-b8a6-cbb66c0b333f"
-version = "0.11.5"
+version = "0.12.0"
+
+    [deps.ColorTypes.extensions]
+    StyledStringsExt = "StyledStrings"
+
+    [deps.ColorTypes.weakdeps]
+    StyledStrings = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
 
 [[deps.ColorVectorSpace]]
 deps = ["ColorTypes", "FixedPointNumbers", "LinearAlgebra", "Requires", "Statistics", "TensorCore"]
-git-tree-sha1 = "a1f44953f2382ebb937d60dafbe2deea4bd23249"
+git-tree-sha1 = "8b3b6f87ce8f65a2b4f857528fd8d70086cd72b1"
 uuid = "c3611d14-8923-5661-9e6a-0046d554d3a4"
-version = "0.10.0"
-weakdeps = ["SpecialFunctions"]
+version = "0.11.0"
 
     [deps.ColorVectorSpace.extensions]
     SpecialFunctionsExt = "SpecialFunctions"
+
+    [deps.ColorVectorSpace.weakdeps]
+    SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [[deps.Colors]]
 deps = ["ColorTypes", "FixedPointNumbers", "Reexport"]
@@ -399,22 +211,6 @@ git-tree-sha1 = "9e2f36d3c96a820c678f2f1f1782582fcf685bae"
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 version = "1.9.1"
 
-[[deps.Distributions]]
-deps = ["AliasTables", "FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SpecialFunctions", "Statistics", "StatsAPI", "StatsBase", "StatsFuns"]
-git-tree-sha1 = "4b138e4643b577ccf355377c2bc70fa975af25de"
-uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.25.115"
-
-    [deps.Distributions.extensions]
-    DistributionsChainRulesCoreExt = "ChainRulesCore"
-    DistributionsDensityInterfaceExt = "DensityInterface"
-    DistributionsTestExt = "Test"
-
-    [deps.Distributions.weakdeps]
-    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-    DensityInterface = "b429d917-457f-4dbc-8f4c-0cc954292b1d"
-    Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
 [[deps.DocStringExtensions]]
 deps = ["LibGit2"]
 git-tree-sha1 = "2fb1e02f2b635d0845df5d7c167fec4dd739b00d"
@@ -458,18 +254,6 @@ version = "4.4.4+1"
 
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
-
-[[deps.FillArrays]]
-deps = ["LinearAlgebra"]
-git-tree-sha1 = "6a70198746448456524cb442b8af316927ff3e1a"
-uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
-version = "1.13.0"
-weakdeps = ["PDMats", "SparseArrays", "Statistics"]
-
-    [deps.FillArrays.extensions]
-    FillArraysPDMatsExt = "PDMats"
-    FillArraysSparseArraysExt = "SparseArrays"
-    FillArraysStatisticsExt = "Statistics"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
@@ -552,30 +336,6 @@ deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll",
 git-tree-sha1 = "55c53be97790242c29031e5cd45e8ac296dadda3"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "8.5.0+0"
-
-[[deps.HypergeometricFunctions]]
-deps = ["LinearAlgebra", "OpenLibm_jll", "SpecialFunctions"]
-git-tree-sha1 = "b1c2585431c382e3fe5805874bda6aea90a95de9"
-uuid = "34004b35-14d8-5ef3-9330-4cdb6864b03a"
-version = "0.3.25"
-
-[[deps.Hyperscript]]
-deps = ["Test"]
-git-tree-sha1 = "179267cfa5e712760cd43dcae385d7ea90cc25a4"
-uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
-version = "0.0.5"
-
-[[deps.HypertextLiteral]]
-deps = ["Tricks"]
-git-tree-sha1 = "7134810b1afce04bbc1045ca1985fbe81ce17653"
-uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
-version = "0.9.5"
-
-[[deps.IOCapture]]
-deps = ["Logging", "Random"]
-git-tree-sha1 = "b6d6bfdd7ce25b0f9b2f6b3dd56b2673a66c8770"
-uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
-version = "0.2.5"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -759,11 +519,6 @@ git-tree-sha1 = "f02b56007b064fbfddb4c9cd60161b6dd0f40df3"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
 version = "1.1.0"
 
-[[deps.MIMEs]]
-git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
-uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
-version = "0.1.4"
-
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
 git-tree-sha1 = "2fa9ee3e63fd3a4f7a9a4f4744a52f4856de82df"
@@ -841,12 +596,6 @@ git-tree-sha1 = "f58782a883ecbf9fb48dcd363f9ccd65f36c23a8"
 uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
 version = "3.0.15+2"
 
-[[deps.OpenSpecFun_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "418e63d434f5ca12b188bbb287dfbe10a5af1da4"
-uuid = "efe28fd5-8261-553b-a9e1-b2916fc3738e"
-version = "0.5.5+1"
-
 [[deps.Opus_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "6703a85cb3781bd5909d48730a67205f3f31a575"
@@ -862,12 +611,6 @@ version = "1.7.0"
 deps = ["Artifacts", "Libdl"]
 uuid = "efcefdf7-47ab-520b-bdef-62a2eaa19f15"
 version = "10.42.0+1"
-
-[[deps.PDMats]]
-deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
-git-tree-sha1 = "949347156c25054de2db3b166c52ac4728cbad65"
-uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
-version = "0.11.31"
 
 [[deps.Pango_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "FriBidi_jll", "Glib_jll", "HarfBuzz_jll", "JLLWrappers", "Libdl"]
@@ -929,12 +672,6 @@ version = "1.40.9"
     ImageInTerminal = "d8c32880-2388-543b-8c61-d9f865259254"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
-[[deps.PlutoUI]]
-deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
-git-tree-sha1 = "eba4810d5e6a01f612b948c9fa94f905b49087b0"
-uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-version = "0.7.60"
-
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
 git-tree-sha1 = "5aa36f7049a63a1528fe8f7c3f2113413ffd4e1f"
@@ -980,18 +717,6 @@ git-tree-sha1 = "729927532d48cf79f49070341e1d918a65aba6b0"
 uuid = "e99dba38-086e-5de3-a5b1-6e4c66e897c3"
 version = "6.7.1+1"
 
-[[deps.QuadGK]]
-deps = ["DataStructures", "LinearAlgebra"]
-git-tree-sha1 = "cda3b045cf9ef07a08ad46731f5a3165e56cf3da"
-uuid = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
-version = "2.11.1"
-
-    [deps.QuadGK.extensions]
-    QuadGKEnzymeExt = "Enzyme"
-
-    [deps.QuadGK.weakdeps]
-    Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
-
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
@@ -1028,18 +753,6 @@ deps = ["UUIDs"]
 git-tree-sha1 = "838a3a4188e2ded87a4f9f184b4b0d78a1e91cb7"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "1.3.0"
-
-[[deps.Rmath]]
-deps = ["Random", "Rmath_jll"]
-git-tree-sha1 = "852bd0f55565a9e973fcfee83a84413270224dc4"
-uuid = "79098fc4-a85e-5d69-aa6a-4863f24498fa"
-version = "0.8.0"
-
-[[deps.Rmath_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "58cdd8fb2201a6267e1db87ff148dd6c1dbd8ad8"
-uuid = "f50d1b31-88e8-58de-be2c-1cc44531875f"
-version = "0.5.1+0"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -1079,18 +792,6 @@ deps = ["Libdl", "LinearAlgebra", "Random", "Serialization", "SuiteSparse_jll"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 version = "1.10.0"
 
-[[deps.SpecialFunctions]]
-deps = ["IrrationalConstants", "LogExpFunctions", "OpenLibm_jll", "OpenSpecFun_jll"]
-git-tree-sha1 = "64cca0c26b4f31ba18f13f6c12af7c85f478cfde"
-uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
-version = "2.5.0"
-
-    [deps.SpecialFunctions.extensions]
-    SpecialFunctionsChainRulesCoreExt = "ChainRulesCore"
-
-    [deps.SpecialFunctions.weakdeps]
-    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-
 [[deps.StableRNGs]]
 deps = ["Random"]
 git-tree-sha1 = "83e6cce8324d49dfaf9ef059227f91ed4441a8e5"
@@ -1113,24 +814,6 @@ deps = ["AliasTables", "DataAPI", "DataStructures", "LinearAlgebra", "LogExpFunc
 git-tree-sha1 = "29321314c920c26684834965ec2ce0dacc9cf8e5"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 version = "0.34.4"
-
-[[deps.StatsFuns]]
-deps = ["HypergeometricFunctions", "IrrationalConstants", "LogExpFunctions", "Reexport", "Rmath", "SpecialFunctions"]
-git-tree-sha1 = "b423576adc27097764a90e163157bcfc9acf0f46"
-uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
-version = "1.3.2"
-
-    [deps.StatsFuns.extensions]
-    StatsFunsChainRulesCoreExt = "ChainRulesCore"
-    StatsFunsInverseFunctionsExt = "InverseFunctions"
-
-    [deps.StatsFuns.weakdeps]
-    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-    InverseFunctions = "3587e190-3f89-42d0-90ee-14403ec27112"
-
-[[deps.SuiteSparse]]
-deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
-uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [[deps.SuiteSparse_jll]]
 deps = ["Artifacts", "Libdl", "libblastrampoline_jll"]
@@ -1161,11 +844,6 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 git-tree-sha1 = "0c45878dcfdcfa8480052b6ab162cdd138781742"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 version = "0.11.3"
-
-[[deps.Tricks]]
-git-tree-sha1 = "7822b97e99a1672bfb1b49b668a6d46d58d8cbcb"
-uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
-version = "0.1.9"
 
 [[deps.URIs]]
 git-tree-sha1 = "67db6cc7b3821e19ebe75791a9dd19c9b1188f2b"
@@ -1508,40 +1186,11 @@ version = "1.4.1+2"
 """
 
 # ╔═╡ Cell order:
-# ╠═4b6927e0-4f18-4ab3-b2d4-fbeea3f8d6c2
-# ╠═4925304c-b06b-4045-99cf-2d62851542c2
-# ╠═4d1655b4-4a20-4c65-a8c2-02c2ffe07f89
-# ╠═a20c0284-07d2-4b08-a24b-6a2cf7e21989
-# ╠═7f399708-5396-45dd-a049-2a4f6148b9c6
-# ╠═8d21c9d3-6016-46f0-b32b-68852f3ac4af
-# ╠═4c6e4079-93fd-4d62-87fe-7f251fd8a530
-# ╠═33154ab9-01f9-484e-9001-c82a57be8056
-# ╠═210f4ece-c725-4625-b45f-b491dd2ca7e3
-# ╠═26c9548d-e140-4499-986f-83d42f0468d0
-# ╠═95d926fe-9d4f-4617-b83a-15531d79a8b9
-# ╠═8799e883-6f22-4e09-8b84-d852ad0d93b4
-# ╠═d415319e-0bc2-440f-ad44-542361624e02
-# ╠═5943db6f-f458-4e4f-87f5-c7282d83f112
-# ╠═0b984c52-bba5-4c6e-a225-e065bfd691f0
-# ╠═8e4f44b9-b66c-46b8-b5e2-b01d98dda05b
-# ╠═2dc2aa49-809b-4003-9bd4-56fac74b0858
-# ╠═4b141423-694a-41de-90ba-e7a5c9041002
-# ╠═d5e230cc-e878-46fa-90a2-af414b4044d9
-# ╠═5f1ac93f-12ec-4f19-9408-c3e752f51cb5
-# ╠═147359ed-5fd6-45a6-83f0-93a73c9620c5
-# ╠═d36d4c02-adb7-4a64-aab1-f0f48cc11e90
-# ╠═4173fe3f-5b64-465b-aef4-488a4e5e69f4
-# ╠═15f89b24-bf9a-4129-af28-1c20d068abf4
-# ╠═c4f447f4-44a2-46a4-b347-12885c1b151f
-# ╠═48f19e19-da55-4cd0-b441-d0260e7c398f
-# ╠═d03858d3-c3e6-4763-a92c-c3bba36e6973
-# ╠═89361bf6-e7d7-4bac-8b8a-5d9ccf8122d2
-# ╠═6bd582ea-b410-41f1-978b-0e77d179bd1e
-# ╠═32eccf9c-53dd-44ec-a50e-1de970acd835
-# ╠═4a4b7ce9-a9e9-412e-ab06-6bdb1fa0fc51
-# ╠═3a7beea1-fa55-4395-bf95-67da8a9bf586
-# ╠═38cc9291-81d2-46ec-b5de-5b9ca8d8453d
-# ╠═c94f67cb-b39e-4296-91d2-70bd2bc87c8e
-# ╠═f7bff085-ce85-4e90-8201-42db74aa73c6
+# ╠═c0cc9acc-c3d3-11ef-1e46-49647dbb83ea
+# ╠═da8af695-3f44-45ba-bb00-e9d2fab97869
+# ╠═9af8f706-2581-4d07-b14f-82bb6658f091
+# ╠═ed06b9cf-6675-463a-8626-77f9675a8ab8
+# ╠═558546cd-6905-4971-9dd1-c3ea41579329
+# ╠═80ecafa9-ac35-431f-9edf-45b5600889ab
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
