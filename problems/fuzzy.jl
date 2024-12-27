@@ -5,7 +5,9 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ c0cc9acc-c3d3-11ef-1e46-49647dbb83ea
-using Plots
+begin
+	using Plots
+end
 
 # ╔═╡ da8af695-3f44-45ba-bb00-e9d2fab97869
 md"""
@@ -66,6 +68,76 @@ begin
 
 end
 
+# ╔═╡ d1c5b8e5-87d2-48ab-b45d-9ed0a7a85ce6
+md"""
+# Example of a fuzzy sets for definine a behavior
+where membership in fuzzy set C, defined as the intersect of two fuzzy sets A and B, denotes an observation of our behavior
+
+"""
+
+# ╔═╡ 9f7df832-afcf-48a0-8178-f6e6ccf39bec
+begin
+	# define a membership function that linearly increases from 0 to 1
+	# and the membership value is 1 for all input values >= some threshold
+	function membership_linear(i, a, b)
+		# 'a' is our minimum
+		if i <= a
+			return 0
+		# 'b' is our threshold
+		elseif a <= i <= b
+			return (i - a)/(b - a)
+		elseif b <= i
+			return 1
+		end
+	end
+
+	# If our fuzzy set C is defined as the intersection of A and B ...
+	# it may also be possible to assign weights to factors x and y,
+	# and using these weights, we compute the membership to C as a weighted average
+	function intersect_fuzzy_relation(f1, f2, x, y)
+		return min(f1(x), f2(y))
+	end
+end
+
+# ╔═╡ 512007c2-fb34-4da0-9c76-44e50d407686
+begin
+
+	# experiment parameters
+	height_peak = 6 # crisp threshold for x ∈ A
+	height_min = 3
+	
+	dwell_time_peak = 6 # crisp threshold for y ∈ B
+	dwell_min = 3
+	# time interval (assume normalized to [0, 10])
+	# use y = a + (x - min)(b - a)/(max - min) to scale to [a, b]
+	y = 0:0.01:10
+
+	# membership functions
+	H(x) = membership_linear(x, 3, height_peak)
+	D(y) = membership_linear(y, 3, dwell_time_peak)
+	
+	# z defined by our two other membership functions
+	z = [intersect_fuzzy_relation(H, D, xi, yi) for xi in x, yi in y]
+	
+	# Plot the 3D mapping
+	plot(x, y, z, 
+		st=:surface, 
+		xlabel="x", 
+		ylabel="y", 
+		zlabel="z", 
+		title="Membership in C based on (x, y)\nfor fuzzy sets A ∈ X and B ∈ Y\nand universes of discourse X and Y",
+		camera=(30, 45)
+	)
+end
+
+# ╔═╡ 3bf67cda-ea0d-4351-9950-7a919797dff1
+md"""
+# Parameters of our membership function
+One question is how does changing the parameters for minimum height and minimum time (as well as max height and max time) affect the overall membership of a dataset in fuzzy set C?
+
+One idea would be to compute a total membership score for C with a set of parameters P, and iterating through either (1) a combination of paramneters (grid search) or (2) changing a single parameter at a time along a continuous range.
+"""
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -81,7 +153,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "39d0d5866236472d6bc1a58c4e663ea8a2a2e057"
+project_hash = "4175705a5479c4fec1c97b50b7b639ad8ec900f5"
 
 [[deps.AliasTables]]
 deps = ["PtrArrays", "Random"]
@@ -1192,5 +1264,9 @@ version = "1.4.1+2"
 # ╠═ed06b9cf-6675-463a-8626-77f9675a8ab8
 # ╠═558546cd-6905-4971-9dd1-c3ea41579329
 # ╠═80ecafa9-ac35-431f-9edf-45b5600889ab
+# ╠═d1c5b8e5-87d2-48ab-b45d-9ed0a7a85ce6
+# ╠═9f7df832-afcf-48a0-8178-f6e6ccf39bec
+# ╠═512007c2-fb34-4da0-9c76-44e50d407686
+# ╠═3bf67cda-ea0d-4351-9950-7a919797dff1
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
